@@ -20,7 +20,7 @@ bot.onText(/\/start/,message => {
 	const chatId = message.chat.id;
 
 	text = `
-歡迎使用邊緣人Bot
+歡迎使用句點Bot
 有感每個群組都有人被句點實在太難過了
 所以開發了這個小小的Bot
 當有人回話後超過五分鐘沒有其他人回應
