@@ -1,23 +1,34 @@
 const TelegramBot = require('node-telegram-bot-api');
 const fs = require('fs');
+const token = require('./token');
 
-const token = 'token here';
 const bot = new TelegramBot(token, { polling: true });
 
-var shutup = false;
-var replytimer;
-var shutuptimer;
-var murmurtimer;
+var map = {};
 
-var textlist = fs.readFileSync('./text').toString().split("\n");
+const textlist = fs.readFileSync('./text').toString().split("\n");
 textlist.splice(-1,1);
 
 function RandomText(){
 	return textlist[Math.floor(Math.random()*textlist.length)];
 }
 
+function init(chatId){
+	console.log("New user :"+chatId);
+	map[chatId] = {
+	shutup: false,
+	replytimer: setTimeout(function(){},0),
+	shutuptimer: setTimeout(function(){},0),
+	murmurtimer: setInterval(function(){},1000*60*60*24)
+	};
+}
+
 bot.onText(/\/start/,message => {
 	const chatId = message.chat.id;
+
+	if(!(chatId in map)){
+		init(chatId);
+	}
 
 	text = `
 歡迎使用邊緣人Bot
@@ -34,6 +45,10 @@ Bot就會隨機回覆一個訊息
 bot.onText(/\/help/,message => {
 	const chatId = message.chat.id;
 
+	if(!(chatId in map)){
+		init(chatId);
+	}
+
 	text = `
 Usage:
 /help 顯示此說明
@@ -45,30 +60,53 @@ Usage:
 });
 
 bot.onText(/^(?!\/)/,message => {
-	if(shutup) return;
 	const chatId = message.chat.id;
-	clearTimeout(replytimer);
-	replytimer = setTimeout(function(){
+
+	if(!(chatId in map)){
+		init(chatId);
+	}
+
+	if(map[chatId].shutup) return;
+	clearTimeout(map[chatId].replytimer);
+	map[chatId].replytimer = setTimeout(function(){
 		bot.sendMessage(chatId,RandomText());
-		console.log('reply.');
 	},10*60*1000);
-	console.log('reply timer start');
 });
 
 bot.onText(/\/shutup/,message => {
 	const chatId = message.chat.id;
-	clearTimeout(shutuptimer);
-	shutup = true;
-	setTimeout(function(){
-		shutup = false;
-		console.log('restart');
+
+	if(!(chatId in map)){
+		init(chatId);
+	}
+	
+	clearTimeout(map[chatId].shutuptimer);
+	clearInterval(map[chatId].murmurtimer);
+	map[chatId].shutup = true;
+	map[chatId].shutuptimer = setTimeout(function(){
+		map[chatId].shutup = false;
+		console.log('[Log] restart : '+chatId);
 		bot.sendMessage(chatId,'安安我又復活囉 <3');
 	},1*60*60*1000);
 	bot.sendMessage(chatId,'對不起我閉嘴QQ');
-	console.log('set mute mode');
+	console.log('[Log] mute mode : '+chatId);
 });
 
 bot.onText(/\/murmur/,message => {
 	const chatId = message.chat.id;
-	bot.sendMessage(chatId,'等等 還在開發呢!');
+
+	if(!(chatId in map)){
+		init(chatId);
+	}
+
+	if(map[chatId].shutup){
+		bot.sendMessage(chatId,"恩...究竟要我閉嘴還是說話呢...臣妾不明白啊QAQ");
+		return;
+	}
+
+	clearInterval(map[chatId].murmurtimer);
+	map[chatId].murmurtimer = setInterval(function(){
+		bot.sendMessage(chatId,RandomText());
+	},1000*60*2);
+	console.log('[Log] murmur mode : '+chatId);
 });
