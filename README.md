@@ -1,4 +1,4 @@
-# ousider_bot
+# outsider_bot
 
 歡迎使用句點Bot  
 有感每個群組都有人被句點實在太難過了  
